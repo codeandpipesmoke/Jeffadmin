@@ -1,0 +1,195 @@
+{#
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+#}
+{% set belongsTo = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
+	//public $defaultOrder 	 = ['Pagecategories.name' => 'asc', 'Pages.pos' => 'asc'];	// For example
+	public $defaultOrder 	 = ['id' => 'asc'];
+
+    /**
+     * Initialize controller
+     *
+     * @return void
+     */
+    public function initialize(): void
+    {
+        parent::initialize();
+
+	}
+
+    /**
+     * Index method
+     *
+     * @return \Cake\Http\Response|null|void Renders view
+     */
+    public function index($clearFilter = null)
+    {
+		//Configure::write('Theme.admin.config.header_buttons_in_action.index', array_merge(Configure::read('Theme.admin.config.header_buttons_in_action.index'), 
+		//	['back' => false, 'add' => true, 'edit' => false, 'save' => false, 'view' => false, 'delete' => false]
+		//));
+
+		$this->set('title', __('Browse the') . ': ' . __('{{ currentModelName }}'));
+		
+		//$this->config['paginate_limit'] = 1000;
+		$queryParams = $this->request->getQuery();
+		$conditions 	 = [];		// Default conditions
+		$page 		 	 = '1';
+		$sort 		 	 = 'id';
+		$direction 	 	 = 'asc';
+		$showSearchBar	 = false;
+		$searchInSession = '';
+		$search 	 	 = '';		
+
+		if ($clearFilter == 'clear-filter'){
+			if($this->session->check('Layout.' . $this->controller . '.search')){
+				$this->session->delete('Layout.' . $this->controller . '.search');
+			}
+			$showSearchBar	 = true;
+		}
+
+		// ############################# SORT ORDER & PAGE ###############################
+		if($this->session->check('Layout.' . $this->controller . '.queryparams')){
+			$this->queryParamsInSession = json_decode($this->session->read('Layout.' . $this->controller . '.queryparams'));
+		}
+		
+		if(isset($this->queryParamsInSession->page)){
+			$page = $this->queryParamsInSession->page;
+		}
+		
+		if(isset($this->queryParamsInSession->sort)){
+			$sort = $this->queryParamsInSession->sort;
+		}
+		
+		if(isset($this->queryParamsInSession->direction)){
+			$direction = $this->queryParamsInSession->direction;
+		}
+
+		if(isset($queryParams['page'])){
+			$this->queryParamsInSession->page = $queryParams['page'];
+			$page = $this->queryParamsInSession->page;
+		}
+
+		if(isset($queryParams['sort'])){
+			$this->queryParamsInSession->sort = $queryParams['sort'];
+			$sort = $this->queryParamsInSession->sort;
+		}
+
+		if(isset($queryParams['direction'])){
+			$this->queryParamsInSession->direction = $queryParams['direction'];
+			$direction = $this->queryParamsInSession->direction;
+		}
+
+		if(!empty($this->queryParamsInSession)){
+			$this->session->write('Layout.' . $this->controller . '.queryparams', json_encode($this->queryParamsInSession));
+		}
+
+		if($page === null){
+			return $this->redirect(['controller' => $this->controller, 'action' => 'index', '?' => array_merge(['page' => 1], $queryParams) ]);
+		}
+
+		$this->paginate['{{ currentModelName }}']['page'] 	= $page;
+		
+		if($sort !== null && $direction !== null){
+			$this->paginate['{{ currentModelName }}']['order'] 	= [$sort => $direction];
+		}else{
+			$this->paginate['{{ currentModelName }}']['order'] 	= $this->defaultOrder;
+		}
+		
+		// ############################# /.SORT ORDER & PAGE ###############################
+
+		// ############################# SEARCH ############################################
+		$search = '';
+		if($this->session->check('Layout.' . $this->controller . '.search')){
+			$search = $this->session->read('Layout.' . $this->controller . '.search');
+		}
+
+		if ($this->request->is('post')) {
+			$search = $this->request->getData()['search'];
+			$this->session->write('Layout.' . $this->controller . '.search', $search);
+		}
+		// ############################# /.SEARCH ############################################		
+
+		// ############################# QUERY #############################################
+		if($search !== ''){
+			$showSearchBar	 = true;
+{% if belongsTo %}
+			$query = $this->{{ currentModelName }}->find()
+				->contain({{ Bake.exportArray(belongsTo)|raw }})
+				->where([
+					//$conditions,
+					'OR' => [
+						'name LIKE' => '%' . $search .  '%',
+						//'title LIKE' => '%' . $search .  '%',
+						//'value' => (integer) $search,			// Must be convert to integer
+					]
+				]);
+{% else %}
+			$query = $this->{{ currentModelName }}->find()
+				->where([
+					//$conditions,
+					'OR' => [
+						'name LIKE' => '%' . $search .  '%',
+						//'title LIKE' => '%' . $search .  '%',
+						//'value' => (integer) $search,			// Must be convert to integer
+					]
+				]);
+{% endif %}
+		}else{
+{% if belongsTo %}
+			$query = $this->{{ currentModelName }}->find()->contain({{ Bake.exportArray(belongsTo)|raw }})->where($conditions);
+{% else %}
+			$query = $this->{{ currentModelName }}->find()->where($conditions);
+{% endif %}
+		}
+		// ############################# /.QUERY ###########################################
+
+
+		// ############################# PAGINATE ############################################
+		try {
+			$this->paginate['{{ currentModelName }}']['limit'] = $this->config['paginate_limit'];
+			$this->paginate['{{ currentModelName }}']['maxLimit'] = $this->config['paginate_limit'];
+			${{ pluralName }} = $this->paginate($query);
+		} catch (NotFoundException $e) {
+			// Do something here like redirecting to first or last page.
+			// $e->getPrevious()->getAttributes('pagingParams') will give you required info.
+			$this->Flash->warning(__($e->getMessage()), ['plugin' => 'Jeffadmin']);
+			$paging = $e->getPrevious()->getAttributes('pagingParams')['pagingParams'];
+			$requestedPage = $paging['requestedPage'];
+
+			// HU: Ha érvénytelen oldalra akar lapozni az URL-ben, akkor az 1. oldalra irányít át.
+			// EN: If you want to page to an invalid page in the URL, it redirects to page 1.
+			if ($paging['pageCount'] < $paging['requestedPage']){
+                return $this->redirect([
+					'controller' => $this->controller,
+					'action' => 'index',
+					'?' => [
+						'page'		=> $paging['pageCount'],
+						'direction'	=> $direction ?? null,
+						'sort'		=> $sort ?? null,
+					],
+					//'#' => 3
+				]);
+			}
+		}
+		// ############################# /.PAGINATE ##########################################
+
+        $this->set('search', $search);
+        $this->set('showSearchBar', $showSearchBar);
+
+		if(empty(${{ pluralName }}->toArray())){
+			return $this->redirect(['action' => 'add']);
+		}
+		
+		$this->set(compact('{{ pluralName }}'));
+    }

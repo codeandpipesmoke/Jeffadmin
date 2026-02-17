@@ -1,0 +1,80 @@
+{#
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+ 
+ // https://stackoverflow.com/questions/64465219/cakephp-bake-templates-controller
+
+#}
+{% set belongsTo = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
+{% set belongsToMany = Bake.aliasExtractor(modelObj, 'belongsToMany') %}
+{% set compact = ["'#{singularName}'"] %}
+    /**
+     * Edit method
+     *
+     * @param string|null $id {{ singularHumanName }} id.
+     * @return \Cake\Http\Response|null|void Redirects on successful edit, renders view otherwise.
+     * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
+     */
+    public function edit($id = null)
+    {
+		//Configure::write('Theme.admin.config.header_buttons_in_action.edit', array_merge(Configure::read('Theme.admin.config.header_buttons_in_action.edit'), 
+		//	['back' => true, 'add' => true, 'edit' => false, 'save' => true, 'view' => true, 'delete' => true]
+		//));
+
+		try {
+			${{ singularName }} = $this->{{ currentModelName }}->get((int) $id, contain: {{ Bake.exportArray(belongsToMany)|raw }});
+		} catch (\Cake\Datasource\Exception\RecordNotFoundException $exeption) {
+			$this->Flash->warning(__($exeption->getMessage()), ['plugin' => 'Jeffadmin']);
+			return $this->redirect(['action' => 'index']);
+		}
+
+		$this->set('title', __('Edit the') . ': ' . __('{{ singularName }}') . ' ' . __('record'));
+		$this->session->write('Layout.' . $this->controller . '.LastId', $id);
+			
+		if ($this->request->is(['patch', 'post', 'put'])) {
+			$data = $this->request->getData();
+			//debug($data);
+			${{ singularName }} = $this->{{ currentModelName }}->patchEntity(${{ singularName }}, $data);
+			//dd(${{ singularName }});
+			/*
+				if(...){
+					${{ singularName }}->setError('field', __('Message'));
+				}
+			*/
+			//dd(${{ singularName }}->getErrors());
+			if (!${{ singularName }}->hasErrors() && $this->{{ currentModelName }}->save(${{ singularName }})) {
+				//$this->Flash->success(__('The {{ singularHumanName|lower }} has been saved.'), ['plugin' => 'Jeffadmin']);
+				$this->Flash->success(__('The save has been: OK'), ['plugin' => 'Jeffadmin']);
+
+				//return $this->redirect(['action' => 'index']);
+				return $this->redirect([
+					'controller' => $this->controller,
+					'action' => 'index',
+					'#' => ${{ singularName }}->id
+				]);
+
+			}
+			//$this->Flash->error(__('The {{ singularHumanName|lower }} could not be saved. Please, try again.'), ['plugin' => 'Jeffadmin']);
+			$this->Flash->error(__('The save has been not. Please check the datas and try again.'), ['plugin' => 'Jeffadmin']);
+        }
+{% for assoc in belongsTo|merge(belongsToMany) %}
+    {%- set otherName = Bake.getAssociatedTableAlias(modelObj, assoc) %}
+    {%- set otherPlural = otherName|variable %}
+        ${{ otherPlural }} = $this->{{ currentModelName }}->{{ otherName }}->find('list', conditions: ['visible' => true], limit: 200, order: ['pos' => 'asc', 'name' => 'asc'])->all();
+        {{- "\n" }}
+    {%- set compact = compact|merge(["'#{otherPlural}'"]) %}
+{% endfor %}
+		$name = ${{ singularName }}->name;
+        $this->set(compact({{ compact|join(', ')|raw }}, 'id', 'name'));
+    }

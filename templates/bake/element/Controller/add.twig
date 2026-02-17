@@ -1,0 +1,72 @@
+{#
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+ 
+ // https://stackoverflow.com/questions/64465219/cakephp-bake-templates-controller
+ // https://discourse.cakephp.org/t/cakephp-bake-templates-controller/8534
+ 
+#}
+{% set compact = ["'#{singularName}'"] %}
+    /**
+     * Add method
+     *
+     * @return \Cake\Http\Response|null|void Redirects on successful add, renders view otherwise.
+     */
+    public function add()
+    {
+		//Configure::write('Theme.admin.config.header_buttons_in_action.add', array_merge(Configure::read('Theme.admin.config.header_buttons_in_action.add'), 
+		//	['back' => true, 'add' => false, 'edit' => false, 'save' => true, 'view' => false, 'delete' => false]
+		//));
+		
+		$this->set('title', __('Add new') . ': ' . __('{{ singularName }}') . ' ' . __('record'));
+        ${{ singularName }} = $this->{{ currentModelName }}->newEmptyEntity();
+        if ($this->request->is('post')) {
+			$data = $this->request->getData();
+			//debug($data);
+            ${{ singularName }} = $this->{{ currentModelName }}->patchEntity(${{ singularName }}, $data);
+			//dd(${{ singularName }});
+			/*
+				if(...){
+					${{ singularName }}->setErrors('field', __('Message'));
+				}
+			*/
+			//dd(${{ singularName }}->getErrors());
+            if (!${{ singularName }}->hasErrors() && $this->{{ currentModelName }}->save(${{ singularName }})) {
+                //$this->Flash->success(__('The {{ singularHumanName|lower }} has been saved.'), ['plugin' => 'Jeffadmin']);
+                $this->Flash->success(__('The save has been: OK'), ['plugin' => 'Jeffadmin']);
+				$this->session->write('Layout.' . $this->controller . '.LastId', ${{ singularName }}->id);
+
+                //return $this->redirect(['action' => 'add']);
+                return $this->redirect([
+					'controller' => $this->controller,
+					'action' => 'index',
+					'#' => ${{ singularName }}->id
+				]);
+
+            }
+            //$this->Flash->error(__('The {{ singularHumanName|lower }} could not be saved. Please, try again.'), ['plugin' => 'Jeffadmin']);
+            $this->Flash->error(__('The save has been not. Please check the datas and try again.'), ['plugin' => 'Jeffadmin']);
+        }
+{% set associations = Bake.aliasExtractor(modelObj, 'BelongsTo') %}
+{% set associations = associations|merge(Bake.aliasExtractor(modelObj, 'BelongsToMany')) %}
+
+{%- for assoc in associations %}
+    {%- set otherName = Bake.getAssociatedTableAlias(modelObj, assoc) %}
+    {%- set otherPlural = otherName|variable %}
+        ${{ otherPlural }} = $this->{{ currentModelName }}->{{ otherName }}->find('list', conditions: ['visible' => true], limit: 200, order: ['pos' => 'asc', 'name' => 'asc'])->all();
+        {{- "\n" }}
+    {%- set compact = compact|merge(["'#{otherPlural}'"]) %}
+{% endfor %}
+        $this->set(compact({{ compact|join(', ')|raw }}));
+    }

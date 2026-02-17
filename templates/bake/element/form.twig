@@ -1,0 +1,472 @@
+{#
+/**
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
+ * @since         2.0.0
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
+ */
+#}
+<?php
+use Cake\Core\Configure;
+use Cake\I18n\FrozenTime;
+
+$this->Form->setTemplates(Configure::read('Templates.form'));
+$this->assign('title', __('{{ action|humanize }}') . ' ' . __('{{ singularHumanName }}'));
+?>
+{% set hasNumberField 		= false %}
+{% set hasStringField		= false %}
+{% set hasTextField 		= false %}
+{% set hasBooleanField 		= false %}
+{% set hasDateField 		= false %}
+{% set hasTimeField 		= false %}
+{% set hasDateTimeField		= false %}
+{% set hasSelectField		= false %}
+{% set hasMultiSelectField	= false %}
+{% set fields = Bake.filterFields(fields, schema, modelObject) %}
+{% for field in fields %}
+{% set fieldData = Bake.columnData(field, schema) %}
+{% if fieldData.type in ['integer'] %}
+{% 	set hasNumberField = true %}
+{% endif %}
+{% if fieldData.type in ['string'] %}
+{% 	set hasStringField = true %}
+{% endif %}
+{% if fieldData.type in ['text'] %}
+{% 	set hasTextField = true %}
+{% endif %}
+{% if fieldData.type in ['boolean'] %}
+{% 	set hasBooleanField = true %}
+{% endif %}
+{% if fieldData.type in ['date'] %}
+{% 	set hasDateField = true %}
+{% endif %}
+{% if fieldData.type in ['time'] %}
+{% 	set hasTimeField = true %}
+{% endif %}
+{% if fieldData.type in ['datetime'] %}
+{% 	set hasDateTimeField = true %}
+{% endif %}
+{% endfor %}
+{% if action in ['add'] %}
+{% 	set cardIcon = 'plus' %}
+{% endif %}
+{% if action in ['edit'] %}
+{% 	set cardIcon = 'edit' %}
+{% endif %}
+				<div id="form-row" class="{{ pluralVar }} row">
+{%- set done = [] %}
+
+					<div class="col-xs-12 col-xl-10">
+						<div class="card mb-3">
+							<div class="card-header">
+
+								<div class="float-start">
+									<h3><i id="card-icon" class="fa fa-{{ cardIcon }} fa-spin"></i> <?= __('{{ action|humanize }}') ?>: <?= __('{{ singularHumanName }}') ?></h3>
+									<?= __('The data marked with <span class="fw-bold text-danger">*</span> must be provided!') ?>
+								</div>
+
+								<div class="float-end ms-5">
+									<?= $this->Html->link('<span class="btn btn-outline-secondary mt-1 me-1"><i class="fa fa-times"></i></span>',
+										["controller" => "{{ pluralHumanName }}", "action" => "index", "_full" => true],
+										["escape" => false, "role" => "button"]
+									); ?>
+
+								</div>
+
+								<div class="form-tab float-end">
+									<ul class="nav nav-tabs mt-1" id="myTab" role="tablist">
+										<li class="nav-item" role="presentation">
+											<button class="nav-link active" id="tabMain" data-bs-toggle="tab" data-bs-target="#tabPanelMain" type="button" role="tab" aria-controls="tabPanelMain" aria-selected="true"><?= __('Basic data') ?></button>
+										</li>
+{% for field in fields %}
+{% set fieldData = Bake.columnData(field, schema) %}
+{% if fieldData.type in ['text'] %}
+
+										<li class="nav-item" role="presentation">
+											<button class="nav-link" id="tab{{ field|humanize|replace({' ': ''}) }}" data-bs-toggle="tab" data-bs-target="#tabPanel{{ field|humanize|replace({' ': ''}) }}" type="button" role="tab" aria-controls="tabPanel{{ field|humanize|replace({' ': ''}) }}" aria-selected="false"><?= __('{{ field|humanize }}') ?></button>
+										</li>
+{% endif %}
+{% endfor %}
+
+<?php /*
+										<li class="nav-item" role="presentation">
+											<button class="nav-link" id="tabSecond" data-bs-toggle="tab" data-bs-target="#tabPanelSecond" type="button" role="tab" aria-controls="tabPanelSecond" aria-selected="false"><?= __('Memo') ?></button>
+										</li>
+										<li class="nav-item" role="presentation">
+											<button class="nav-link" id="tabMore" data-bs-toggle="tab" data-bs-target="#tabPanelMore" type="button" role="tab" aria-controls="tabPanelMore" aria-selected="false"><?= __('More') ?></button>
+										</li>
+*/ ?>
+
+									</ul>
+								</div>
+
+							</div>
+
+							<?= $this->Form->create(${{ singularVar }}, ['id' => 'main-form']) ?>
+							
+								<?php //= $this->Form->control('_csrfToken', ['name' => '_csrfToken', 'type' => 'hidden', 'value' => $this->request->getAttribute('csrfToken')] ) ?>
+
+								<div class="card-body">
+								
+									<div class="tab-content" id="tabContent">
+										
+										<div class="tab-pane fade show active" id="tabPanelMain" role="tabpanel" aria-labelledby="tabMain" tabindex="0">
+
+{% for field in fields %}
+{%- if '_count' not in field %}
+{%- if field not in primaryKey %}
+    {%- if keyFields[field] is defined %}
+		{% set hasSelectField = true %}
+        {%- set fieldData = Bake.columnData(field, schema) %}
+			{%- if not fieldData.null %}
+				{%- set required = " required" %}
+				{%- set empty = "false" %}
+			{%- else %}
+				{%- set required = "" %}
+				{%- set empty = "true" %}
+			{%- endif %}
+									<!-- 1. SELECT: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 form-group row select required">
+												<label class="col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-md-4">
+													<?= $this->Form->control('{{ field }}', ['options' => ${{ keyFields[field] }}, 'placeholder' => __('{{field|humanize}}'), 'class' => 'form-control select2', 'data-live-search' => false, 'data-container' => 'body', 'data-size' => '6', 'empty' => {{ empty }}]);	?>
+
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+    {%- elseif field not in ['created', 'modified', 'updated'] %}
+        {%- set fieldData = Bake.columnData(field, schema) %}
+		{%- if fieldData.type not in ['text'] %}
+			{%- if not fieldData.null %}
+				{%- set required = " required" %}
+				{%- set empty = "false" %}
+			{%- else %}
+				{%- set required = "" %}
+				{%- set empty = "true" %}
+			{%- endif %}
+			{%- set autococus = '' %}
+			{%- if 'name' == field %}
+				{%- set autococus = ", 'autofocus' => true" %}
+			{%- endif %}
+			{%- set value = "" %}
+			{%- if fieldData.type in ['time'] %}
+				{%- set value = ", 'value' => ''" %}
+			{%- endif %}
+			{%- if fieldData.type in ['string'] %}
+											<!-- 2. STRING: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 form-group row text required">
+												<label class="col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-md-9">
+													<?= $this->Form->control('{{ field }}', ['label' => __('{{field|humanize}}'), 'placeholder' => __('{{field|humanize}}'), 'class' => 'form-control', 'empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type in ['integer'] %}
+											<!-- 3. INTEGER: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 form-group row number required">
+												<label class="col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-xs-12 col-sm-12 col-md-5 col-lg-4 col-xl-4 col-xxl-4">
+													<?= $this->Form->control('{{ field }}', ['class' => 'form-control', 'placeholder' => __('{{field|humanize}}'), 'data-decimals' => '0', 'min' => '0', 'max' => '999999999999', 'step' => '1', 'empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type in ['datetime'] %}
+											<!-- 4. DATETIME: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 row required">
+												<label class="pt-2 col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-xs-12 col-sm-12 col-md-5 col-lg-5 col-xl-4 col-xxl-4">
+													<div class="form-group datetime">
+														<div class="input-group {{field|replace({'_': '-'})}}" id="{{field|replace({'_': '-'})}}" data-target-input="nearest">
+															<?= $this->Form->control('{{ field }}', ['type' => 'text', 'placeholder' => __('{{field|humanize}}'), 'class' => 'form-control', 'empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+															<div class="input-group-append" data-target="#{{field|replace({'_': '-'})}}" data-toggle="{{field|replace({'_': '-'})}}">
+																<div class="input-group-text"><i class="fa fa-calendar"></i></div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>											
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type in ['date'] %}
+											<!-- 5. DATE: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 row required">
+												<label class="pt-2 col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-xs-12 col-sm-12 col-md-5 col-lg-4 col-xl-4 col-xxl-4">
+													<div class="form-group date">
+														<div class="input-group {{field|replace({'_': '-'})}}" id="{{field|replace({'_': '-'})}}" data-target-input="nearest">
+															<?= $this->Form->control('{{ field }}', ['type' => 'text', 'placeholder' => __('{{field|humanize}}'), 'class' => 'form-control', 'empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+															<div class="input-group-append" data-target="#{{field|replace({'_': '-'})}}" data-toggle="{{field|replace({'_': '-'})}}">
+																<div class="input-group-text"><i class="fa fa-calendar"></i></div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type in ['time'] %}
+											<!-- 6. TIME: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 row required">
+												<label class="pt-2 col-form-label col-md-2 pt-1 text-start text-md-end{{ required }}" for="{{field|replace({'_': '-'})}}"><?= __('{{field|humanize}}') ?>:</label>
+												<div class="col-xs-12 col-sm-12 col-md-5 col-lg-4 col-xl-4 col-xxl-4">
+													<div class="form-group time">
+														<div class="input-group {{field|replace({'_': '-'})}}" id="{{field|replace({'_': '-'})}}" data-target-input="nearest">
+															<?= $this->Form->control('{{ field }}', ['type' => 'text', 'placeholder' => __('{{field|humanize}}'), 'class' => 'form-control', 'empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+															<div class="input-group-append" data-target="#{{field|replace({'_': '-'})}}" data-toggle="{{field|replace({'_': '-'})}}">
+																<div class="input-group-text"><i class="fa fa-clock-o"></i></div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type in ['boolean'] %}
+											<!-- 7. BOOLEAN: {{ field }}: {{ fieldData.type }} {{ required }} -->
+											<div class="mb-3 form-group row checkbox">
+												<div class="col-sm-2 col-form-label{{ required }}"></div>
+												<div class="col-sm-10">
+													<?= $this->Form->control('{{ field }}', ['empty' => {{ empty }}{{ value }}{{ autococus }}]); ?>
+
+												</div>
+											</div>											
+											{{- "\n" }}
+											{{- "\n" }}
+			{%- endif %}
+			{%- if fieldData.type not in ['string', 'integer', 'datetime', 'date', 'time', 'boolean'] %}
+											<!-- 8. ELSE: {{ field }}: {{ fieldData.type }} {{ required }} not in ['string', 'integer', 'datetime', 'date', 'time', 'boolean'] -->
+											<?php //$this->Form->control('{{ field }}', ['class' => 'form-control'{{ autococus }}]); ?>
+											{{- "\n" }}
+			{%- endif %}
+		{%- endif %}		
+    {%- endif %}
+{%- endif %}
+{%- endif %}
+{%- endfor %}
+{%- if associations.BelongsToMany is defined %}
+{%- for assocName, assocData in associations.BelongsToMany %}
+{% set hasMultiSelectField = true %}
+											<!-- 9. MULTISELECT: {{ assocData.property }} -->
+											<div class="mb-3 form-group row select">
+												<label class="col-form-label col-md-2 pt-1 text-start text-md-end" for="{{assocData.property|replace({'_': '-'})}}"><?= __('{{assocData.property|humanize}}') ?>:</label>
+												<div class="col-md-9">
+													<?= $this->Form->control('{{ assocData.property }}._ids', ['class' => 'form-control', 'placeholder' => __('{{ assocData.property|humanize }}'), 'options' => ${{ assocData.variable }}, 'data-live-search' => false, 'data-actions-box' => false, 'data-container' => 'body', 'data-size' => '6']); ?>
+												</div>
+											</div>
+											{{- "\n" }}
+											{{- "\n" }}
+{%- endfor %}
+{% endif %}
+										</div><!-- /.tabPanelMain -->
+										
+										
+{% if hasTextField == true %}
+{% for field in fields %}
+{% set fieldData = Bake.columnData(field, schema) %}
+{% if fieldData.type in ['text'] %}
+	{%- if not fieldData.null %}
+		{%- set required = " required" %}
+		{%- set empty = "false" %}
+	{%- else %}
+		{%- set required = "" %}
+		{%- set empty = "true" %}
+	{%- endif %}
+										<!-- TabPanel: tabPanel{{ field|humanize|replace({' ': ''}) }} -->
+										<!-- 10. TEXT: {{ field }}: {{ fieldData.type }} {{ required }} -->
+										<div class="tab-pane fade" id="tabPanel{{ field|humanize|replace({' ': ''}) }}" role="tabpanel" aria-labelledby="tab{{ field|humanize|replace({' ': ''}) }}" tabindex="0">
+											<div class="row mb-3">
+{#
+<?php /*
+												<div class="col-sm-12">
+													<label class="col-form-label col-md-2 text-start text-md-end" for="{{ field|replace({' ': '', '_': '-'}) }}"><?= __('{{field|humanize}}') ?>:</label>
+												</div>
+*/ ?>
+#}
+												<div class="col-sm-12">
+													<?= $this->Form->control('{{ field }}', ['id' => '{{ field|replace({' ': '', '_': '-'}) }}', 'label' => false, 'class' => 'summernote', 'empty' => {{empty}}]); ?>
+
+												</div>
+											</div>
+										</div><!-- /.TabPanel: tabPanel{{ field|humanize|replace({' ': ''}) }} -->
+
+{% endif %}
+{% endfor %}
+{% endif %}
+<?php /*											
+										<div class="tab-pane fade" id="tabPanelMore" role="tabpanel" aria-labelledby="tabMore" tabindex="0">
+											<h3>More content come here...</h3>
+
+										</div><!-- /.N.TAB -->
+*/ ?>
+
+									</div><!-- /.TAB PANEL -->
+										
+								</div>
+
+								<div class="card-footer text-center">
+									<?= $this->Form->button('<span class="btn-label"><i class="fa fa-save"></i></span>' . __('Save'), ["escapeTitle" => false, "type" => "submit", "class" => "btn btn-primary me-4"]) ?>
+									
+									<?= $this->Html->link('<span class="btn-label"><i class="fa fa-arrow-up"></i></span>' . __("Cancel"),
+										["controller" => "{{ pluralHumanName }}", "action" => "index", "_full" => true],
+										["escape" => false, "role" => "button", "class" => "btn btn-outline-secondary"]
+									); ?>
+									
+								</div>
+
+							<?= $this->Form->end() ?>
+
+						</div><!-- end card-->
+                    </div>
+
+
+				</div>			
+
+{% set commentNumber 	= '//' %}
+{% set commentString 	= '//' %}
+{% set commentText 		= '//' %}
+{% set commentReadMore	= '//' %}
+{% set commentBoolean 	= '//' %}
+{% set commentDate 		= '//' %}
+{% set commentTime 		= '//' %}
+{% set commentDateTime 	= '//' %}
+{% if hasNumberField == true %}
+{% set commentNumber = '' %}
+{% endif %}
+{% if hasStringField == true %}
+{% set commentString = '' %}
+{% endif %}
+{% if hasTextField == true %}
+{% set commentText = '' %}
+{% if action in ['view'] %}
+{% set commentReadMore	= '' %}
+{% endif %}
+{% endif %}
+{% if hasBooleanField == true %}
+{% set commentBoolean = '' %}
+{% endif %}
+{% if hasSelectField == true %}
+{% endif %}
+{% if hasMultiSelectField == true %}
+{% set commentSelect = '' %}
+{% set commentMultiSelect = '' %}
+{% endif %}
+{% if hasDateField == true or hasTimeField == true or hasDateTimeField == true %}
+{% set commentDate = '' %}
+{% set commentTime = '' %}
+{% set commentDateTime = '' %}
+{% endif %}
+
+<?php
+	$this->Html->css(
+		[
+			{{ commentDate }}"Jeffadmin./assets/plugins/tempus-dominus-6.0.0/dist/css/tempus-dominus.min",
+			{{ commentDate }}"Jeffadmin./assets/plugins/summernote-0.8.18-dist/summernote-lite.min",
+			{{ commentSelect }}"Jeffadmin./assets/plugins/bootstrap-select-main/docs/docs/dist/css/bootstrap-select.min",
+			{{ commentBoolean }}"Jeffadmin./assets/plugins/icheck-1.0.3/skins/all",
+
+			// "Jeffadmin./assets/plugins/select2-4.1.0-rc.0/dist/css/select2.min",	// If you want to use Select 2, but it's not finish!!!
+			// "Jeffadmin./assets/css/select2-bootstrap-5-theme.min",					// If you want to use Select 2, but it's not finish!!!
+		],
+		['block' => true]);
+
+
+	$this->Html->script(
+		[
+			{{ commentDate }}"Jeffadmin./assets/js/popper",
+			{{ commentDate }}"Jeffadmin./assets/plugins/tempus-dominus-6.0.0/dist/js/tempus-dominus.min",	// Must be loaded the popper.js !!
+			{{ commentNumber }}"Jeffadmin./assets/plugins/bootstrap-input-spinner-bs-5/src/bootstrap-input-spinner",
+			{{ commentText }}"Jeffadmin./assets/plugins/summernote-0.8.18-dist/summernote-lite.min",
+			{{ commentText }}"Jeffadmin./assets/plugins/summernote-0.8.18-dist/lang/summernote-hu-HU",
+			{{ commentReadMore }}'Jeffadmin./assets/plugins/jReadMore-master/dist/read-more.min',
+			{{ commentSelect }}"Jeffadmin./assets/plugins/bootstrap-select-main/docs/docs/dist/js/bootstrap-select.min",
+			{{ commentSelect }}"Jeffadmin./assets/plugins/bootstrap-select-main/docs/docs/dist/js/i18n/defaults-hu_HU.min",
+			{{ commentBoolean }}"Jeffadmin./assets/plugins/icheck-1.0.3/icheck.min",
+			
+			//"Jeffadmin./assets/plugins/jquery-copy-to-clipboard-master/jquery.copy-to-clipboard",
+			
+			//'Jeffadmin./assets/plugins/select2-4.1.0-rc.0/dist/js/select2.full.min',	// If you want to use Select 2, but it's not finish!!!
+			//'Jeffadmin./assets/plugins/select2-4.1.0-rc.0/dist/js/i18n/hu',			// If you want to use Select 2, but it's not finish!!!
+		],
+		['block' => 'scriptBottom']
+	); ?>
+		
+<?php
+	// SELECT: https://developer.snapappointments.com/bootstrap-select/examples/
+?>
+
+<?php $this->Html->scriptStart(['block' => 'javaScriptBottom']); ?>
+
+{% if hasSelectField == true or hasMultiSelectField == true %}
+	jeffAdminInitSelectPicker()
+{% endif %}
+{% if hasNumberField == true %}
+	jeffAdminInitInputSpinner()
+{% endif %}
+{% if hasTextField == true %}
+{% for field in fields %}
+{% set fieldData = Bake.columnData(field, schema) %}
+{% if fieldData.type in ['text'] %}
+	jeffAdminInitSummerNote('{{ field|replace({' ': '', '_': '-'}) }}', 400, '<?= __("Here you can write the note") ?>...') // Init SummerNote for {{ field }}.
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if hasDateField == true or hasTimeField == true or hasDateTimeField == true %}
+{% for field in fields %}
+{%- if field not in ['created', 'modified', 'updated'] %}
+{%- set fieldData = Bake.columnData(field, schema) %}
+{%- if fieldData.type in ['date'] %}
+{% if action in ['add'] %}
+	jeffAdminInitDatePicker('{{ field|replace({' ': '', '_': '-'}) }}')
+{% endif %}
+{% if action in ['edit'] %}
+	jeffAdminInitDatePicker('{{ field|replace({' ': '', '_': '-'}) }}'<?= ${{ singularVar }}->{{ field }} !== null ? ", '" . ${{ singularVar }}->{{ field }}->format('Y-m-d') . "'" : "" ?>)
+{% endif %}
+{% endif %}
+{%- if fieldData.type in ['time'] %}
+{% if action in ['add'] %}
+	jeffAdminInitTimePicker('{{ field|replace({' ': '', '_': '-'}) }}')
+{% endif %}
+{% if action in ['edit'] %}
+	jeffAdminInitTimePicker('{{ field|replace({' ': '', '_': '-'}) }}'<?= ${{ singularVar }}->{{ field }} !== null ? ", '" . ${{ singularVar }}->{{ field }}->format('H:i:s') . "'" : "" ?>)
+{% endif %}
+{% endif %}
+{%- if fieldData.type in ['datetime'] %}
+{% if action in ['add'] %}
+	jeffAdminInitDateTimePicker('{{ field|replace({' ': '', '_': '-'}) }}')
+{% endif %}
+{% if action in ['edit'] %}
+	jeffAdminInitDateTimePicker('{{ field|replace({' ': '', '_': '-'}) }}'<?= ${{ singularVar }}->{{ field }} !== null ? ", '" . ${{ singularVar }}->{{ field }}->format('Y-m-d H:i:s') . "'" : "" ?>)
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+	{{ commentBoolean }}jeffAdminInitICheck('icheckbox_flat-blue');
+
+	$(document).ready( function(){
+		$('#button-submit').click( function(){
+			$('#main-form').submit();
+		});			
+	});			
+
+<?php $this->Html->scriptEnd(['block' => 'javaScriptBottom']); ?>
