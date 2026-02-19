@@ -153,7 +153,7 @@
 {% endif %}
 		}
 		if($sort !== null && $direction !== null){
-			$query->orderBy($sort);
+			$query->orderBy([$sort => $direction]);
 		}
 		// ############################# /.QUERY ###########################################
 
