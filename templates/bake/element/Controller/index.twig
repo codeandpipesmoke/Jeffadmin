@@ -100,11 +100,11 @@
 
 		$this->paginate['{{ currentModelName }}']['page'] 	= $page;
 		
-		//if($sort !== null && $direction !== null){
-		//	$this->paginate['{{ currentModelName }}']['order'] 	= [$sort => $direction];
-		//}else{
-		//	$this->paginate['{{ currentModelName }}']['order'] 	= $this->defaultOrder;
-		//}
+		if($sort !== null && $direction !== null){
+			$this->paginate['{{ currentModelName }}']['order'] 	= [$sort => $direction];
+		}else{
+			$this->paginate['{{ currentModelName }}']['order'] 	= $this->defaultOrder;
+		}
 		
 		// ############################# /.SORT ORDER & PAGE ###############################
 
@@ -152,9 +152,10 @@
 			$query = $this->{{ currentModelName }}->find()->where($conditions);
 {% endif %}
 		}
-		if($sort !== null && $direction !== null){
-			$query->orderBy([$sort => $direction]);
-		}
+		// Inkább itt van: $this->paginate['{{ currentModelName }}']['sortableFields']...
+		// if($sort !== null && $direction !== null){
+		// 	$query->orderBy([$sort => $direction]);
+		// }
 		// ############################# /.QUERY ###########################################
 
 
@@ -162,6 +163,8 @@
 		try {
 			$this->paginate['{{ currentModelName }}']['limit'] = $this->config['paginate_limit'];
 			$this->paginate['{{ currentModelName }}']['maxLimit'] = $this->config['paginate_limit'];
+			// Itt lehetőség van idegen, szülő tábla szerint is rendezést engedélyezni, csak fel kell sorolni a mezőket. Talán a következő verziójú bake-ben
+			// $this->paginate['{{ currentModelName }}']['sortableFields'] = ['{{ currentModelName }}.id', '{{ currentModelName }}.name'];
 			${{ pluralName }} = $this->paginate($query);
 		} catch (NotFoundException $e) {
 			// Do something here like redirecting to first or last page.
