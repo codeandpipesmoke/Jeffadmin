@@ -152,6 +152,9 @@
 			$query = $this->{{ currentModelName }}->find()->where($conditions);
 {% endif %}
 		}
+		if($sort !== null && $direction !== null){
+			$query->orderBy($sort);
+		}
 		// ############################# /.QUERY ###########################################
 
 
