@@ -100,11 +100,11 @@
 
 		$this->paginate['{{ currentModelName }}']['page'] 	= $page;
 		
-		if($sort !== null && $direction !== null){
-			$this->paginate['{{ currentModelName }}']['order'] 	= [$sort => $direction];
-		}else{
-			$this->paginate['{{ currentModelName }}']['order'] 	= $this->defaultOrder;
-		}
+		//if($sort !== null && $direction !== null){
+		//	$this->paginate['{{ currentModelName }}']['order'] 	= [$sort => $direction];
+		//}else{
+		//	$this->paginate['{{ currentModelName }}']['order'] 	= $this->defaultOrder;
+		//}
 		
 		// ############################# /.SORT ORDER & PAGE ###############################
 
